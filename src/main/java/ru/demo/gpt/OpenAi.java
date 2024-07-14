@@ -1,7 +1,9 @@
 package ru.demo.gpt;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Scanner;
 
 /**
  * @author Usenko Sergey, 29.06.2024
@@ -18,77 +21,87 @@ public class OpenAi {
         chatGPT("test");
     }
 
-    public static String chatGPT(String massage) {
+    public static void chatGPT(String message) {
         String urlOi = "https://api.openai.com/v1/chat/completions";
         String model = "gpt-3.5-turbo";
         String apiKey = "";
 
-        try {
+        try(Scanner scanner = new Scanner(new BufferedReader(new InputStreamReader(System.in)))) {
+            JSONObject jsonObject = getJsonObject(model);
+            JSONObject promptMessage = getPromptMessage(scanner);
+            JSONArray messages = new JSONArray();
+            messages.put(promptMessage);
 
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("model", model);
-            jsonObject.put("temperature", 1);
+            while (true) {
+                JSONObject userMessage = new JSONObject();
+                userMessage.put("role", "user");
+                System.out.print("Your question: ");
+                userMessage.put("content", scanner.nextLine());
+                messages.put(userMessage);
+                jsonObject.put("messages", messages);
+                String body = jsonObject.toString();
 
-            JSONObject j01 = new JSONObject();
-            j01.put("role", "system");
-            j01.put("content","Тебя зовут Вова");
-
-
-            JSONObject j1 = new JSONObject();
-            j1.put("role", "user");
-            j1.put("content","Привет, как тебя зовут?");
-
-            JSONObject j2 = new JSONObject();
-            j2.put("role", "assistant");
-            j2.put("content","Привет! Меня зовут Вова. Чем могу помочь?");
-
-            JSONObject j3 = new JSONObject();
-            j3.put("role", "user");
-            j3.put("content","Какой у тебя пол?");
-
-
-            JSONArray a = new JSONArray();
-            a.put(j01);
-            a.put(j1);
-            a.put(j2);
-            a.put(j3);
-
-            jsonObject.put("messages", a);
-
-//            String body = "{\"model\": \"" + model + "\", \"messages\": [{\"role\": \"user\", \"content\": \"Привет, можешь мне помочь?\"}],\"temperature\": 0.7}";
-            String body = jsonObject.toString();
-            System.out.println(body);
-            URL url = new URL(urlOi);
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("POST");
-            con.setRequestProperty("Content-Type", "application/json");
-            con.setRequestProperty("Authorization", "Bearer " + apiKey);
-            con.setDoOutput(true);
-
-            OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
-            writer.write(body);
-            writer.flush();
-            writer.close();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
-            String line;
-            StringBuilder response = new StringBuilder();
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
+                String content = getAnswerFromChatGpt(urlOi, apiKey, body);
+                System.out.print("ChatGpt answer: ");
+                System.out.println(content);
+                JSONObject assistantMessage = new JSONObject();
+                assistantMessage.put("role", "assistant");
+                assistantMessage.put("content", content);
+                messages.put(assistantMessage);
             }
-            reader.close();
-
-            JSONObject jsonObject1 = new JSONObject(response.toString());
-            JSONArray array = jsonObject1.getJSONArray("choices");
-            JSONObject jsonObject11 = array.getJSONObject(0);
-            JSONObject jsonObject2 = jsonObject11.getJSONObject("message");
-            String content = jsonObject2.getString("content");
-            System.out.println(content);
-
-            return content;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
 
+    private static @NotNull JSONObject getJsonObject(String model) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("model", model);
+        jsonObject.put("temperature", 1);
+        return jsonObject;
+    }
+
+    private static @NotNull JSONObject getPromptMessage(Scanner scanner) {
+        JSONObject promptMessage = new JSONObject();
+        promptMessage.put("role", "system");
+        System.out.print("Enter prompt message: ");
+        promptMessage.put("content", scanner.nextLine());
+        return promptMessage;
+    }
+
+    private static String getAnswerFromChatGpt(String urlOi, String apiKey, String body) throws IOException {
+        URL url = new URL(urlOi);
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("POST");
+        con.setRequestProperty("Content-Type", "application/json");
+        con.setRequestProperty("Authorization", "Bearer " + apiKey);
+        con.setDoOutput(true);
+
+        sendRequestToChatGpt(body, con);
+        String response = getResponseFromChatGpt(con);
+
+        JSONObject responseObject = new JSONObject(response);
+        JSONArray choices = responseObject.getJSONArray("choices");
+        JSONObject messageObject = choices.getJSONObject(0).getJSONObject("message"); //todo избавиться от индекса 0
+        String content = messageObject.getString("content");
+        return content;
+    }
+
+    private static @NotNull String getResponseFromChatGpt(HttpURLConnection con) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+        String line;
+        StringBuilder response = new StringBuilder();
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
+        }
+        reader.close();
+        return response.toString();
+    }
+
+    private static void sendRequestToChatGpt(String body, HttpURLConnection con) throws IOException {
+        OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
+        writer.write(body);
+        writer.flush();
+        writer.close();
     }
 }

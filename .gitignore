@@ -58,3 +58,4 @@ build/
 ### VS Code ###
 .vscode/
 >>>>>>> a8da41a (first commit)
+*.properties
