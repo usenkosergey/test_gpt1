@@ -21,13 +21,12 @@ import java.util.Scanner;
 public class OpenAi {
 
     @Value("${OpenAi.apiKey}")
-    String apiKey;
+    private String apiKey;
 
     public void chatGPT() {
         System.out.println(apiKey);
         String urlOi = "https://api.openai.com/v1/chat/completions";
         String model = "gpt-3.5-turbo";
-//        String apiKey = ;
 
         try(Scanner scanner = new Scanner(new BufferedReader(new InputStreamReader(System.in)))) {
             JSONObject jsonObject = getJsonObject(model);
