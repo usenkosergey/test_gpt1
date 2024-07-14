@@ -2,21 +2,25 @@ package ru.demo.gpt;
 
 import okhttp3.*;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
 
-public class OpenAIFileUpload {
+@Service
+public class OpenAIFileUploadService {
 
+    @Value("${OpenAi.apiKey}")
+    private String apiKey;
 
-    private static final String API_KEY = "";
-    private static final String UPLOAD_URL = "https://api.openai.com/v1/files";
+    private final String UPLOAD_URL = "https://api.openai.com/v1/files";
 
-    public static void main(String[] args) throws IOException {
+    public void sendFile() throws IOException {
         OkHttpClient client = new OkHttpClient();
 
         // Подготовка файла и данных формы
-        File file = new File("f:\\11\\test.jsonl");
+        File file = new File("C:\\Users\\ProkopenkoA\\IdeaProjects\\test_gpt1\\src\\main\\resources\\test.jsonl");
         RequestBody fileBody = RequestBody.create(file, MediaType.parse("application/jsonl"));
         RequestBody formBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -28,7 +32,7 @@ public class OpenAIFileUpload {
         Request request = new Request.Builder()
                 .url(UPLOAD_URL)
                 .post(formBody)
-                .addHeader("Authorization", "Bearer " + API_KEY)
+                .addHeader("Authorization", "Bearer " + apiKey)
                 .build();
 
         // Выполнение запроса
