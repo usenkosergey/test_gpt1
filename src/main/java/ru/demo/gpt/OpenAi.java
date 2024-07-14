@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,15 +17,17 @@ import java.util.Scanner;
 /**
  * @author Usenko Sergey, 29.06.2024
  */
+@Service
 public class OpenAi {
-    public static void main(String[] args) {
-        chatGPT("test");
-    }
 
-    public static void chatGPT(String message) {
+    @Value("${OpenAi.apiKey}")
+    String apiKey;
+
+    public void chatGPT() {
+        System.out.println(apiKey);
         String urlOi = "https://api.openai.com/v1/chat/completions";
         String model = "gpt-3.5-turbo";
-        String apiKey = "";
+//        String apiKey = ;
 
         try(Scanner scanner = new Scanner(new BufferedReader(new InputStreamReader(System.in)))) {
             JSONObject jsonObject = getJsonObject(model);
@@ -54,14 +57,14 @@ public class OpenAi {
         }
     }
 
-    private static @NotNull JSONObject getJsonObject(String model) {
+    private @NotNull JSONObject getJsonObject(String model) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("model", model);
         jsonObject.put("temperature", 1);
         return jsonObject;
     }
 
-    private static @NotNull JSONObject getPromptMessage(Scanner scanner) {
+    private @NotNull JSONObject getPromptMessage(Scanner scanner) {
         JSONObject promptMessage = new JSONObject();
         promptMessage.put("role", "system");
         System.out.print("Enter prompt message: ");
@@ -69,7 +72,7 @@ public class OpenAi {
         return promptMessage;
     }
 
-    private static String getAnswerFromChatGpt(String urlOi, String apiKey, String body) throws IOException {
+    private String getAnswerFromChatGpt(String urlOi, String apiKey, String body) throws IOException {
         URL url = new URL(urlOi);
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("POST");
@@ -87,7 +90,7 @@ public class OpenAi {
         return content;
     }
 
-    private static @NotNull String getResponseFromChatGpt(HttpURLConnection con) throws IOException {
+    private @NotNull String getResponseFromChatGpt(HttpURLConnection con) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
         String line;
         StringBuilder response = new StringBuilder();
@@ -98,7 +101,7 @@ public class OpenAi {
         return response.toString();
     }
 
-    private static void sendRequestToChatGpt(String body, HttpURLConnection con) throws IOException {
+    private void sendRequestToChatGpt(String body, HttpURLConnection con) throws IOException {
         OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
         writer.write(body);
         writer.flush();
